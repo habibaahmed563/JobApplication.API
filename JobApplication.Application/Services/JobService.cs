@@ -1,4 +1,4 @@
-﻿using JobApplication.Application.Dtos;
+using JobApplication.Application.Dtos;
 using JobApplication.Application.Interfaces;
 using JobApplication.Domain.Entities;
 using System;
@@ -61,6 +61,41 @@ namespace JobApplication.Application.Services
             _jobRepository.Update(job);
 
             await _jobRepository.SaveChangesAsync();
+        }
+
+        public async Task<IEnumerable<JobDto>> GetAllAsync()
+        {
+            var jobs = await _jobRepository.GetAllAsync();
+
+            return jobs.Select(j => new JobDto
+            {
+                Id = j.Id,
+                Title = j.Title,
+                Description = j.Descrption,
+                IsActive = j.IsActive,
+                RecruiterId = j.RecruiterId,
+                ClosedAt = j.ClosedAt,
+                ClosedBy = j.ClosedBy
+            });
+        }
+
+        public async Task<JobDto?> GetByIdAsync(int id)
+        {
+            var job = await _jobRepository.GetByIdAsync(id);
+
+            if (job == null)
+                return null;
+
+            return new JobDto
+            {
+                Id = job.Id,
+                Title = job.Title,
+                Description = job.Descrption,
+                IsActive = job.IsActive,
+                RecruiterId = job.RecruiterId,
+                ClosedAt = job.ClosedAt,
+                ClosedBy = job.ClosedBy
+            };
         }
 
     }

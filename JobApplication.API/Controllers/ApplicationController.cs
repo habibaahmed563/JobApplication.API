@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
+using JobApplication.Application.Features.Applications.Commands.CancelApplication;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using static JobApplication.Application.Services.AppService;
 
 namespace JobApplication.API.Controllers
 {
@@ -8,43 +8,49 @@ namespace JobApplication.API.Controllers
     [ApiController]
     public class ApplicationController : ControllerBase
     {
-        private readonly ApplicationService _applicationService;
+        private readonly IMediator _mediator;
 
-        public ApplicationController(ApplicationService applicationService)
+        public ApplicationController(IMediator mediator)
         {
-            _applicationService = applicationService;
+            _mediator = mediator;
         }
 
         [HttpPut("{id}/cancel")]
         public async Task<IActionResult> Cancel(int id, [FromQuery] int requesterId)
         {
-            try {
-                await _applicationService.CancelAsync(id, requesterId);
+            try
+            {
+                await _mediator.Send(new CancelApplicationCommand
+                {
+                    ApplicationId = id,
+                    RequesterId = requesterId
+                });
+
                 return Ok(new
-                { 
-                    message = "Application cancelled successfully." 
+                {
+                    message = "Application cancelled successfully."
                 });
             }
-            catch (KeyNotFoundException ex) 
-            { 
+            catch (KeyNotFoundException ex)
+            {
                 return NotFound(new
                 {
-                    message = ex.Message 
-                }); 
+                    message = ex.Message
+                });
             }
             catch (UnauthorizedAccessException ex)
             {
                 return Unauthorized(new
-                { 
-                    message = ex.Message 
+                {
+                    message = ex.Message
                 });
             }
-            catch (InvalidOperationException ex) 
+            catch (InvalidOperationException ex)
             {
                 return BadRequest(new
                 {
-                    message = ex.Message 
-                }); 
+                    message = ex.Message
+                });
             }
         }
     }

@@ -1,5 +1,8 @@
-﻿using JobApplication.Application.Dtos;
+using JobApplication.Application.Dtos;
+using JobApplication.Application.Features.Jobs.Commands.CloseJob;
+using JobApplication.Application.Features.Jobs.Commands.CreateJob;
 using JobApplication.Application.Services;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -12,16 +15,22 @@ namespace JobApplication.API.Controllers
     public class JobController : ControllerBase
     {
         private readonly JobService _jobService;
+        private readonly IMediator _mediator;
 
-        public JobController(JobService jobService)
+        public JobController(JobService jobService, IMediator mediator)
         {
             _jobService = jobService;
+            _mediator = mediator;
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateAsync(CreateJobDto createJobDto)
         {
-            var id = await _jobService.CreateAsync(createJobDto);
+            var id = await _mediator.Send(new CreateJobCommand
+            {
+                Title = createJobDto.Title,
+                Description = createJobDto.Description,
+            });
             return Ok(new
             {
                 id = id
@@ -30,6 +39,15 @@ namespace JobApplication.API.Controllers
 
         [Authorize]
         [HttpPut("{id}/close")]
+        /// <summary>
+        /// Closes an active job posting. Only the recruiter who created the job can close it.
+        /// </summary>
+        /// <param name="id">The ID of the job to close.</param>
+        /// <returns>A success message or an error response.</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Close(int id)
         {
             try
@@ -38,7 +56,11 @@ namespace JobApplication.API.Controllers
                     User.FindFirst("UserId")!.Value
                 );
 
-                await _jobService.CloseAsync(id, requesterId);
+                await _mediator.Send(new CloseJobCommand
+                {
+                    JobId = id,
+                    RequesterId = requesterId
+                });
 
                 return Ok(new
                 {
@@ -66,6 +88,30 @@ namespace JobApplication.API.Controllers
                     message = ex.Message
                 });
             }
+        }
+
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var jobs = await _jobService.GetAllAsync();
+            return Ok(jobs);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var job = await _jobService.GetByIdAsync(id);
+
+            if (job == null)
+            {
+                return NotFound(new
+                {
+                    message = $"Job with id {id} not found."
+                });
+            }
+
+            return Ok(job);
         }
 
 

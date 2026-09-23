@@ -1,4 +1,4 @@
-﻿using JobApplication.Application.Interfaces;
+using JobApplication.Application.Interfaces;
 using JobApplication.Domain.Entities;
 using JobApplication.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -49,6 +49,11 @@ namespace JobApplication.Infrastructure.Repositories
         {
             return await _context.Jobs
               .FirstOrDefaultAsync(x => x.Id == id);
+        }
+
+        public async Task<IEnumerable<Job>> GetAllAsync()
+        {
+            return await _context.Jobs.ToListAsync();
         }
     }
 }

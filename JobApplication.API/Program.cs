@@ -34,6 +34,9 @@ namespace JobApplication.API
 
             builder.Services.AddScoped<IAppRepository, AppRepository>();
             builder.Services.AddScoped<ApplicationService>();
+            builder.Services.AddMediatR(cfg =>
+                cfg.RegisterServicesFromAssembly(typeof(JobApplication.Application.AssemblyReference).Assembly));
+
 
             builder.Services.AddAuthentication("Bearer")
               .AddJwtBearer("Bearer", options =>
@@ -64,8 +67,6 @@ namespace JobApplication.API
 
 
             var app = builder.Build();
-
-
 
 
             // Configure the HTTP request pipeline.
