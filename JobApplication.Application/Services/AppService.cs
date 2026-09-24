@@ -1,4 +1,4 @@
-﻿using JobApplication.Application.Interfaces;
+using JobApplication.Application.Interfaces;
 using JobApplication.Domain.Enums;
 using System;
 using System.Collections.Generic;
@@ -48,9 +48,9 @@ namespace JobApplication.Application.Services
                 _appRepository.Update(application);
 
                 await _appRepository.SaveChangesAsync();
+
+                Hangfire.BackgroundJob.Enqueue<INotificationService>(x => x.NotifyCandidate(id));
             }
-
-
         }
     }
 }

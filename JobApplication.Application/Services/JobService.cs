@@ -98,5 +98,19 @@ namespace JobApplication.Application.Services
             };
         }
 
+        public async Task AutoCloseExpiredJobsAsync()
+        {
+            var jobs = await _jobRepository.GetAllAsync();
+            var activeJobs = jobs.Where(j => j.IsActive && j.ClosedAt == null);
+
+            foreach (var job in activeJobs)
+            {
+                job.IsActive = false;
+                job.ClosedAt = DateTime.UtcNow;
+                _jobRepository.Update(job);
+            }
+
+            await _jobRepository.SaveChangesAsync();
+        }
     }
 }

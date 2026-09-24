@@ -1,8 +1,11 @@
 
+using Hangfire;
+using Hangfire.SqlServer;
 using JobApplication.Application.Interfaces;
 using JobApplication.Application.Services;
 using JobApplication.Infrastructure.Persistence;
 using JobApplication.Infrastructure.Repositories;
+using JobApplication.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar;
@@ -29,6 +32,7 @@ namespace JobApplication.API
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(connectionString));
 
+            builder.Services.AddScoped<INotificationService, EmailNotificationService>();
             builder.Services.AddScoped<JobService>();
             builder.Services.AddScoped<IJobRepository,JobRepository>();
 
@@ -37,6 +41,14 @@ namespace JobApplication.API
             builder.Services.AddMediatR(cfg =>
                 cfg.RegisterServicesFromAssembly(typeof(JobApplication.Application.AssemblyReference).Assembly));
 
+            // Configure Hangfire services
+            builder.Services.AddHangfire(configuration => configuration
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UseSqlServerStorage(connectionString));
+
+            builder.Services.AddHangfireServer();
 
             builder.Services.AddAuthentication("Bearer")
               .AddJwtBearer("Bearer", options =>
@@ -62,12 +74,7 @@ namespace JobApplication.API
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
-
-
-
-
             var app = builder.Build();
-
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
@@ -80,6 +87,14 @@ namespace JobApplication.API
 
             app.UseAuthorization();
 
+            app.UseHangfireDashboard("/hangfire");
+
+            // Schedule recurring job
+            RecurringJob.AddOrUpdate<JobService>(
+                "auto-close-expired-jobs",
+                service => service.AutoCloseExpiredJobsAsync(),
+                Cron.Daily
+            );
 
             app.MapControllers();
 
